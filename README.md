@@ -13,6 +13,7 @@ The website for **Jai Bhattal, Online Fitness & Nutrition Coach**: a fast, singl
 | `docs/assets/css/styles.css` | Theme: colours, fonts, layout |
 | `docs/assets/js/main.js` | WhatsApp links, mobile menu, certificate viewer, form, calorie calculator |
 | `docs/assets/img/certificates/` | Certificate images shown on the site |
+| `docs/assets/img/photos/` | Stock photos (hero and method cards) |
 | `docs/assets/img/og-image.jpg` | Preview image when the link is shared on WhatsApp or social media |
 | `instagram-screenshots/`, `photo_*.jpg`, `*.pdf` | Source material (not part of the site) |
 
@@ -59,6 +60,17 @@ The "Free tool" section works out daily calories, protein, BMI and a healthy wei
 | Food list | Approximate protein per serving of common Indian foods |
 
 The percentages, protein ranges and food list are at the top of the calculator code in `docs/assets/js/main.js` (`GOALS` and `FOODS`).
+
+## Photo credits
+
+Free stock photos from Pexels, free for commercial use with no attribution required ([Pexels licence](https://www.pexels.com/license/)). Replace them with real photos of Jai and his clients when available.
+
+| File | Source |
+| --- | --- |
+| `hero-food.jpg` | [Meal in pot with bowls of spices and salad](https://www.pexels.com/photo/meal-in-pot-with-bowls-of-spices-and-salad-around-20408435/) |
+| `home-cooking.jpg` | [A woman cooking Indian food](https://www.pexels.com/photo/a-woman-cooking-indian-food-3531700/) |
+| `paneer-curry.jpg` | [Food in a ceramic bowl on a wooden board](https://www.pexels.com/photo/food-in-a-ceramic-bowl-on-a-wooden-board-12737805/) |
+| `dumbbells.jpg` | [Two dumbbells on a black yoga mat](https://www.pexels.com/photo/close-up-photo-of-two-dumbbells-on-black-yoga-mat-8032748/) |
 
 ## Common edits
 
