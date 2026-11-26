@@ -43,7 +43,7 @@
 
   /* ---------- Mobile menu ---------- */
   var toggle = document.querySelector(".nav-toggle");
-  var nav = document.getElementById("site-nav");
+  var nav = document.getElementById("mobile-nav");
 
   function setMenu(open) {
     toggle.setAttribute("aria-expanded", String(open));
@@ -64,8 +64,26 @@
     }
   });
   window.addEventListener("resize", function () {
-    if (window.innerWidth > 960) setMenu(false);
+    if (window.innerWidth > 1060) setMenu(false);
   });
+
+  /* ---------- Highlight the current section in the menu ---------- */
+  var navLinks = document.querySelectorAll(".site-header .nav a[href^='#']");
+  if ("IntersectionObserver" in window && navLinks.length) {
+    var byId = {};
+    navLinks.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+    var visible = {};
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) { visible[entry.target.id] = entry.isIntersecting; });
+      navLinks.forEach(function (a) {
+        a.classList.toggle("is-current", !!visible[a.getAttribute("href").slice(1)]);
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(byId).forEach(function (id) {
+      var section = document.getElementById(id);
+      if (section) spy.observe(section);
+    });
+  }
 
   /* ---------- Reveal on scroll ---------- */
   var reveals = document.querySelectorAll(".reveal");
