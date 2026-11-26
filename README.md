@@ -11,7 +11,7 @@ The website for **Jai Bhattal, Online Fitness & Nutrition Coach**: a fast, singl
 | --- | --- |
 | `docs/index.html` | The whole page: all text and sections |
 | `docs/assets/css/styles.css` | Theme: colours, fonts, layout |
-| `docs/assets/js/main.js` | WhatsApp links, mobile menu, certificate viewer, form |
+| `docs/assets/js/main.js` | WhatsApp links, mobile menu, certificate viewer, form, calorie calculator |
 | `docs/assets/img/certificates/` | Certificate images shown on the site |
 | `docs/assets/img/og-image.jpg` | Preview image when the link is shared on WhatsApp or social media |
 | `instagram-screenshots/`, `photo_*.jpg`, `*.pdf` | Source material (not part of the site) |
@@ -46,6 +46,19 @@ Repository → Settings → Pages → "Deploy from a branch" → choose the bran
 3. In Google Sites, remove the custom domain from the old site (Settings → Custom domains).
 4. HTTPS switches on automatically. DNS changes can take from a few minutes up to 48 hours.
 5. Then change `og:image` in `docs/index.html` to the full address, `https://www.jaibhattal.com/assets/img/og-image.jpg`, so link previews always show the image.
+
+## Calorie & protein calculator
+
+The "Free tool" section works out daily calories, protein, BMI and a healthy weight range, then sends the results to Jai on WhatsApp. Nothing is stored.
+
+| Number | Method |
+| --- | --- |
+| Calories | Mifflin-St Jeor equation × activity level; fat loss = 80% of maintenance (never below 1,200 kcal for women or 1,500 for men, and never above maintenance); muscle gain = 110% |
+| BMI categories | Indian consensus cut-offs (Misra et al., 2009): healthy 18.5–22.9, overweight 23–24.9, obese 25+ |
+| Protein | International Society of Sports Nutrition range, 1.4–2.0 g per kg; uses a healthy reference weight (BMI 25) for people above it |
+| Food list | Approximate protein per serving of common Indian foods |
+
+The percentages, protein ranges and food list are at the top of the calculator code in `docs/assets/js/main.js` (`GOALS` and `FOODS`).
 
 ## Common edits
 

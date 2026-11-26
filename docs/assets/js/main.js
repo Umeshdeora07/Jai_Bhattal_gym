@@ -64,7 +64,7 @@
     }
   });
   window.addEventListener("resize", function () {
-    if (window.innerWidth > 1060) setMenu(false);
+    if (window.innerWidth > 1140) setMenu(false);
   });
 
   /* ---------- Highlight the current section in the menu ---------- */
@@ -220,6 +220,194 @@
 
     window.open(waLink(lines.join("\n")), "_blank", "noopener");
   });
+
+  /* ---------- Calorie, protein & BMI calculator ----------
+     Calories: Mifflin-St Jeor equation x activity factor.
+     BMI categories: Indian consensus cut-offs (Misra et al., 2009).
+     Protein: International Society of Sports Nutrition, 1.4-2.0 g/kg/day. */
+  var calcForm = document.getElementById("calc-form");
+  if (calcForm) {
+    var calcBox = document.querySelector(".calc-result");
+    var calcEmpty = calcBox.querySelector(".calc-empty");
+    var calcOut = calcBox.querySelector(".calc-out");
+    var calcMessage = document.getElementById("calc-message");
+    var calcWa = document.getElementById("calc-wa");
+    var defaultMessage = calcMessage.textContent;
+
+    var GOALS = {
+      lose: { text: "lose fat", label: "Lose fat", factor: 0.8, protein: [1.6, 2.0] },
+      maintain: { text: "maintain", label: "Maintain", factor: 1.0, protein: [1.4, 1.8] },
+      gain: { text: "build muscle", label: "Build muscle", factor: 1.1, protein: [1.6, 2.0] }
+    };
+    var ACTIVITY = {
+      "1.2": "Mostly sitting", "1.375": "Lightly active", "1.55": "Moderately active",
+      "1.725": "Very active", "1.9": "Extra active"
+    };
+    // Approximate protein per common serving (Indian food composition tables / USDA).
+    var FOODS = {
+      veg: [["Paneer, 100 g", 18], ["Soya chunks, 30 g dry", 15], ["Besan chilla (40 g besan)", 9],
+            ["Milk, 1 glass (250 ml)", 8], ["Dal, 1 katori cooked", 7], ["Dahi, 1 bowl (200 g)", 6],
+            ["Roasted chana, 30 g", 6], ["Peanuts, 30 g", 7]],
+      egg: [["Eggs, 2 whole", 12], ["Paneer, 100 g", 18], ["Soya chunks, 30 g dry", 15],
+            ["Milk, 1 glass (250 ml)", 8], ["Dal, 1 katori cooked", 7], ["Dahi, 1 bowl (200 g)", 6]],
+      nonveg: [["Chicken breast, 100 g cooked", 31], ["Eggs, 2 whole", 12], ["Paneer, 100 g", 18],
+            ["Soya chunks, 30 g dry", 15], ["Dal, 1 katori cooked", 7], ["Dahi, 1 bowl (200 g)", 6]]
+    };
+
+    var out = {};
+    calcBox.querySelectorAll("[data-out]").forEach(function (el) { out[el.getAttribute("data-out")] = el; });
+    var marker = calcBox.querySelector(".bmi-marker");
+
+    function num(name) {
+      var el = calcForm.elements[name];
+      var v = el ? parseFloat(String(el.value).replace(",", ".")) : NaN;
+      return isFinite(v) ? v : NaN;
+    }
+    function radio(name) { return calcForm.elements[name].value; }
+    function fmt(n) { return Math.round(n).toLocaleString("en-IN"); }
+    function round50(n) { return Math.round(n / 50) * 50; }
+
+    function syncUnits() {
+      var ft = radio("hunit") === "ft";
+      calcForm.querySelector(".unit-cm").hidden = ft;
+      calcForm.querySelector(".unit-ft").hidden = !ft;
+      var hl = document.getElementById("c-height-label");
+      if (ft) hl.removeAttribute("for"); else hl.setAttribute("for", "c-cm");
+    }
+
+    function bmiCategory(bmi) {
+      if (bmi < 18.5) return "Underweight";
+      if (bmi < 23) return "Healthy range";
+      if (bmi < 25) return "Overweight";
+      return "Obese";
+    }
+    function bmiPosition(bmi) {
+      // Four equal segments: <18.5 | 18.5-23 | 23-25 | 25+ (shown up to 35)
+      var stops = [[15, 18.5], [18.5, 23], [23, 25], [25, 35]];
+      for (var i = 0; i < stops.length; i++) {
+        var lo = stops[i][0], hi = stops[i][1];
+        if (bmi < hi || i === stops.length - 1) {
+          var t = Math.min(1, Math.max(0, (bmi - lo) / (hi - lo)));
+          return (i + t) * 25;
+        }
+      }
+      return 0;
+    }
+
+    function showEmpty(message) {
+      calcMessage.textContent = message || defaultMessage;
+      calcEmpty.hidden = false;
+      calcOut.hidden = true;
+    }
+
+    function calculate() {
+      syncUnits();
+      var sex = radio("sex");
+      var age = num("age");
+      var heightCm = radio("hunit") === "ft"
+        ? ((num("ft") || 0) * 12 + (num("in") || 0)) * 2.54
+        : num("cm");
+      var wUnit = radio("wunit");
+      var weightKg = wUnit === "lb" ? num("weight") * 0.45359237 : num("weight");
+
+      if (!isFinite(age) || !heightCm || !isFinite(weightKg)) return showEmpty();
+      if (age < 18) return showEmpty("This calculator is for adults (18+). Message Jai for guidance for teenagers.");
+      if (age > 90 || heightCm < 120 || heightCm > 230 || weightKg < 30 || weightKg > 300) {
+        return showEmpty("Please check your age, height and weight. One of them looks out of range.");
+      }
+
+      var activity = parseFloat(calcForm.elements.activity.value);
+      var goal = GOALS[radio("goal")];
+      var h = heightCm / 100;
+
+      // Mifflin-St Jeor resting energy
+      var bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + (sex === "male" ? 5 : -161);
+      var tdee = bmr * activity;
+      var maintenance = round50(tdee);
+      var target = round50(tdee * goal.factor);
+      var floor = sex === "male" ? 1500 : 1200;
+      var floored = false, lowMaintenance = false;
+      if (radio("goal") === "lose" && target < floor) {
+        // Never suggest less than a safe minimum, and never more than maintenance.
+        target = Math.min(floor, maintenance);
+        floored = true;
+        lowMaintenance = target >= maintenance;
+      }
+
+      // BMI and healthy range (Indian cut-offs)
+      var bmi = weightKg / (h * h);
+      var lowKg = 18.5 * h * h, highKg = 22.9 * h * h;
+
+      // Protein: based on a healthy reference weight if BMI is 25+
+      var refKg = Math.min(weightKg, 25 * h * h);
+      var pLow = Math.round(refKg * goal.protein[0] / 5) * 5;
+      var pHigh = Math.round(refKg * goal.protein[1] / 5) * 5;
+      var perMeal = Math.round((pLow + pHigh) / 2 / 4);
+
+      out.goalText.textContent = goal.text;
+      out.target.textContent = fmt(target);
+      out.tdee.textContent = fmt(maintenance);
+      out.bmr.textContent = fmt(round50(bmr));
+      out.protein.textContent = pLow + "–" + pHigh;
+      out.perMeal.textContent = perMeal;
+      out.healthy.textContent = wUnit === "lb"
+        ? Math.round(lowKg / 0.45359237) + "–" + Math.round(highKg / 0.45359237) + " lb"
+        : Math.round(lowKg) + "–" + Math.round(highKg) + " kg";
+      out.bmi.textContent = bmi.toFixed(1);
+      out.bmiCat.textContent = bmiCategory(bmi);
+      marker.style.left = bmiPosition(bmi) + "%";
+
+      out.foods.innerHTML = "";
+      FOODS[radio("cfood")].forEach(function (f) {
+        var li = document.createElement("li");
+        li.appendChild(document.createTextNode(f[0]));
+        var b = document.createElement("b");
+        b.textContent = "~" + f[1] + " g";
+        li.appendChild(b);
+        out.foods.appendChild(li);
+      });
+
+      var notes = [];
+      if (radio("goal") === "lose" && bmi < 18.5) {
+        notes.push("Your BMI is below the healthy range, so losing weight isn't recommended. Talk to Jai about building strength instead.");
+      } else if (lowMaintenance) {
+        notes.push("Your maintenance calories are already low, so eating less isn't advised. Moving more each day is the better route; ask Jai how.");
+      } else if (floored) {
+        notes.push("We've kept your calories at a safe minimum of " + fmt(target) + " kcal. Going lower should only be done with a coach.");
+      }
+      if (weightKg > refKg) notes.push("Protein is based on a healthy reference weight for your height, so it isn't overestimated.");
+      out.note.textContent = notes.join(" ");
+      out.note.hidden = !notes.length;
+
+      var heightText = radio("hunit") === "ft"
+        ? (num("ft") || 0) + " ft " + (num("in") || 0) + " in"
+        : Math.round(heightCm) + " cm";
+      var weightText = num("weight") + " " + wUnit;
+      var msg = [
+        "Hi Jai! I used the calculator on your website.",
+        "",
+        "Goal: " + goal.label,
+        "Me: " + (sex === "male" ? "Male" : "Female") + ", " + age + " years, " + heightText + ", " + weightText,
+        "Activity: " + ACTIVITY[calcForm.elements.activity.value],
+        "Daily calories: about " + fmt(target) + " kcal",
+        "Protein: " + pLow + "–" + pHigh + " g a day",
+        "BMI: " + bmi.toFixed(1) + " (" + bmiCategory(bmi) + ")",
+        "",
+        "Can you make me a personalised plan?"
+      ].join("\n");
+      calcWa.setAttribute("href", waLink(msg));
+      calcWa.setAttribute("target", "_blank");
+      calcWa.setAttribute("rel", "noopener");
+
+      calcEmpty.hidden = true;
+      calcOut.hidden = false;
+    }
+
+    calcForm.addEventListener("input", calculate);
+    calcForm.addEventListener("change", calculate);
+    calcForm.addEventListener("submit", function (e) { e.preventDefault(); calculate(); });
+    syncUnits();
+  }
 
   /* ---------- Footer year ---------- */
   var year = document.getElementById("year");
